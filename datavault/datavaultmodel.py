@@ -5,7 +5,6 @@ from .field import Attribute, BusinessKey
 class DataVaultModel:
     __attrs: dict[str, Attribute]
     __keys: dict[str, BusinessKey]
-    hash_func: Callable[[BusinessKey, dict[str, Any]], str]
 
     def __init_subclass__(cls) -> None:
         cls.__attrs = {
@@ -21,18 +20,14 @@ class DataVaultModel:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Self:
-        kwargs = {}
+        inst = cls()
+
         for key, value in cls.__attrs.items():
-            kwargs[key] = value.dtype(data[key])
+            inst.__dict__[key] = value.dtype(data[key])
 
         for key, value in cls.__keys.items():
+            inst.__dict__[key] = value.hash_func(value.hash_attrs, data)
 
-            hash_attrs = [str(data[_val]) for _val in value.hash_attrs]
-            hash_str = "||".join(hash_attrs)
-            kwargs[key] = hash_str
-
-        inst = cls()
-        inst.__dict__.update(kwargs)
         return inst
 
     def __str__(self) -> str:
